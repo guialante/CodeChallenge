@@ -1,13 +1,18 @@
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, NoReturn
 
 
 class Client:
     """
     This class represents any Client that can be part of any AirCompany
+
+    Attributes
+    ----------
+    name: str
+        The name of the client
     """
 
-    def __init__(self, name) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
 
 
@@ -24,14 +29,28 @@ class Package:
     ship_date: str
         The date the package was transported by the AirCompany
 
-    client: Client | None
+    client: Client
         The client who sent the package
+
+    origin: str
+        The origin of the package
+
+    destination: str
+        The destination of the package
     """
 
-    def __init__(self) -> None:
+    def __init__(self, origin: str, destination: str, client: Client) -> None:
         self.is_transported: bool = False
         self.ship_date: str = ""
-        self.client: Client | None = None
+        self.client: Client = client
+        self.origin: str = origin
+        self.destination: str = destination
+
+    def validate_origin_destination(self) -> bool:
+        """
+        :return: Boolean value indicating whether the origin and destination are the same or not
+        """
+        return self.origin != self.destination
 
 
 class AirCompany:
@@ -40,6 +59,9 @@ class AirCompany:
 
     Attributes
     ----------
+    name: str
+        The name of the AirCompany
+
     packages: lst
         Packages transported by the company will be stored in this list
 
@@ -50,19 +72,19 @@ class AirCompany:
         Allow formatting of the shipping date to validate whether a shipping date is correct or not.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, name: str) -> None:
+        self.name: str = name
         self.packages: list = []
         self.clients: list = []
         self.shipping_date_format: str = "%Y-%m-%d"
 
     def add_client(self, client: Client) -> None:
         """:param client: Client
-
         Add the client to the AirCompany
         """
         self.clients.append(client)
 
-    def transport_package(self, package: Package, ship_date: str) -> None | str:
+    def transport_package(self, package: Package, ship_date: str) -> None | NoReturn:
         """
         :param package: Package
         :param ship_date: Shipping date
@@ -70,17 +92,21 @@ class AirCompany:
         """
         is_valid_ship_date = self.validate_ship_date(ship_date)
         can_transport_package = self.validate_can_transport_package(package)
-        if is_valid_ship_date and can_transport_package:
+        if is_valid_ship_date and can_transport_package and package.validate_origin_destination():
             package.is_transported = True
             package.ship_date = ship_date
             self.packages.append(package)
         else:
             if not is_valid_ship_date and not can_transport_package:
-                return f"Invalid Shipping date and client: {package.client.name} is not a Client"
+                raise Exception(
+                    f"Invalid Shipping date and client: {package.client.name} is not a Client"
+                )
+            elif not is_valid_ship_date:
+                raise Exception("Invalid Shipping Date")
             elif not can_transport_package:
-                return f"Client: {package.client.name} is not a Client"
-            else:
-                return "Invalid Shipping Date"
+                raise Exception(f"Client: {package.client.name} is not a Client")
+            elif not package.validate_origin_destination():
+                raise Exception("Origin and destination are the same.")
 
     def generate_report(self, ship_date: str) -> Tuple[int, int]:
         """
