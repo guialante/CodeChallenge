@@ -1,7 +1,19 @@
 import unittest
 import random
 
-from project.models import Client, Package, AirCompany
+from project.models import Client, Package, AirCompany, Report
+
+
+class TestClient(unittest.TestCase):
+
+    def test_client(self):
+        client = Client(name="client a")
+        self.assertEqual(client.name, "client a")
+
+    def test_client_rename(self):
+        client = Client(name="client a")
+        client.name = "client b"
+        self.assertEqual(client.name, "client b")
 
 
 class TestAirCompany(unittest.TestCase):
@@ -14,13 +26,13 @@ class TestAirCompany(unittest.TestCase):
         package = Package(origin="Miami", destination="New York", client=client)
 
         self.assertFalse(package.is_transported)
-        self.assertEqual(len(company.packages), 0)
+        self.assertEqual(len(company.get_packages()), 0)
 
         company.transport_package(package, ship_date="2024-02-01")
 
         self.assertTrue(package.is_transported)
-        self.assertEqual(len(company.packages), 1)
-        self.assertIn(package, company.packages)
+        self.assertEqual(len(company.get_packages()), 1)
+        self.assertIn(package, company.get_packages())
 
     def test_transport_package_invalid_ship_date(self):
         client = Client(name="client a")
@@ -64,7 +76,9 @@ class TestAirCompany(unittest.TestCase):
         client = Client("client a")
         company = AirCompany(name="company a")
         company.add_client(client)
-        package = Package(origin="Los Angeles", destination="Los Angeles", client=client)
+        package = Package(
+            origin="Los Angeles", destination="Los Angeles", client=client
+        )
 
         with self.assertRaises(Exception) as ctx:
             company.transport_package(package, ship_date="2024-02-29")
@@ -74,7 +88,10 @@ class TestAirCompany(unittest.TestCase):
             ctx.exception.args[0],
         )
 
-    def test_generate_report(self):
+
+class TestReport(unittest.TestCase):
+
+    def setUp(self) -> None:
         company = AirCompany(name="company a")
         client = Client("client a")
         client2 = Client("client b")
@@ -97,26 +114,33 @@ class TestAirCompany(unittest.TestCase):
             ship_date = ship_dates[0] if i % 2 == 0 else ship_dates[1]
             company.transport_package(package, ship_date=ship_date)
 
-        total_packages, total_collected = company.generate_report(
-            ship_date=ship_dates[0]
+        self.report = Report(company=company)
+        self.ship_dates = ship_dates
+
+    def test_generate_report(self):
+
+        total_packages, total_collected = self.report.generate_report(
+            ship_date=self.ship_dates[0]
         )
         self.assertEqual(total_packages, 51)
         self.assertEqual(total_collected, 510)
 
-        total_packages1, total_collected1 = company.generate_report(
-            ship_date=ship_dates[1]
+        total_packages1, total_collected1 = self.report.generate_report(
+            ship_date=self.ship_dates[1]
         )
         self.assertEqual(total_packages1, 50)
         self.assertEqual(total_collected1, 500)
 
-        total_packages2, total_collected2 = company.generate_report_by_dates(
+    def test_gererate_report_by_dates(self):
+
+        total_packages2, total_collected2 = self.report.generate_report_by_dates(
             start_ship_date="2024-02-01", end_ship_date="2024-03-01"
         )
 
         self.assertEqual(total_packages2, 101)
         self.assertEqual(total_collected2, 1010)
 
-        total_packages3, total_collected3 = company.generate_report_by_dates(
+        total_packages3, total_collected3 = self.report.generate_report_by_dates(
             start_ship_date="2024-03-01", end_ship_date="2024-04-01"
         )
 
